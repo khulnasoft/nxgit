@@ -1,0 +1,121 @@
+name: nxgit
+summary:  Nxgit - A painless self-hosted Git service
+description: |
+  The goal of this project is to make the easiest, fastest, and most painless
+  way of setting up a self-hosted Git service. With Go, this can be done with
+  an independent binary distribution across ALL platforms that Go supports,
+  including Linux, Mac OS X, Windows and ARM.
+
+type: app
+icon: public/img/nxgit-lg.png
+confinement: strict
+grade: stable
+
+version: 'git'
+
+apps:
+  nxgit:
+    command: bin/nxgit
+    plugs: [network, network-bind]
+  web:
+    command: bin/nxgit web
+    daemon: simple
+    plugs: [network, network-bind]
+  serv:
+    command: bin/nxgit serv
+    plugs: [network, network-bind]
+  admin:
+    command: bin/nxgit admin
+    plugs: [network, network-bind]
+  cert:
+    command: bin/nxgit cert
+  hook:
+    command: bin/nxgit hook
+    plugs: [network, network-bind]
+  dump:
+    command: bin/nxgit dump
+    plugs: [home]
+  help:
+    command: bin/nxgit --help
+  version:
+    command: bin/nxgit --version
+  sqlite:
+    command: usr/bin/sqlite3
+
+parts:
+  go:
+    source-tag: go1.8.3
+    prime:
+      - -*
+
+  nxgit:
+    plugin: nil
+    source: .
+    source-type: git
+    after: [ go ]
+    stage-packages: [ git, sqlite3, openssh-client ]
+    build-packages: [ libpam0g-dev, libsqlite3-dev]
+    prepare: |
+      export PATH=$SNAPCRAFT_PART_INSTALL/../../go/install/bin:$PATH
+      export GOPATH=$SNAPCRAFT_PART_INSTALL/../go
+      export bld=$SNAPCRAFT_PART_INSTALL/../build
+      export src=$SNAPCRAFT_PART_INSTALL/../src
+      mkdir -p $GOPATH/src/go.khulnasoft.com/nxgit
+      cp -r $src/* $GOPATH/src/go.khulnasoft.com/nxgit
+    build: |
+      export PATH=$SNAPCRAFT_PART_INSTALL/../go/bin/:$SNAPCRAFT_PART_INSTALL/../../go/install/bin:$PATH
+      export GOPATH=$SNAPCRAFT_PART_INSTALL/../go
+      go get -u github.com/jteeuwen/go-bindata/...
+      cd $GOPATH/src/go.khulnasoft.com/nxgit
+      TAGS="bindata sqlite sqlite_unlock_notify pam cert" make generate build
+    install: |
+      # Set Convenience Variables
+      src=$SNAPCRAFT_PART_INSTALL/../go/src/go.khulnasoft.com/nxgit
+      nxgitBase=$SNAPCRAFT_PART_INSTALL/nxgit
+      scurrent=/var/snap/$SNAPCRAFT_PROJECT_NAME/current
+      scommon=/var/snap/$SNAPCRAFT_PROJECT_NAME/common
+      # Copy build artifact and necessary files
+      mkdir -p $nxgitBase/conf
+      # Workaround for nxgit ignoring APP_DATA_PATH in app.ini after snap update.
+      ln -s $scurrent/custom $nxgitBase/custom
+      ln -s $scommon/data $nxgitBase/data
+      # Workaround for cmd/certs not knowing how to put files somewhere else
+      ln -s $scurrent/cert.pem $nxgitBase/cert.pem
+      ln -s $scurrent/key.pem $nxgitBase/key.pem
+      # Copy static content
+      mkdir -p $SNAPCRAFT_PART_INSTALL/static
+      cp    $src/nxgit             $nxgitBase/
+      cp -r $src/LICENSE \
+            $src/templates \
+            $src/public \
+            $src/scripts \
+            $SNAPCRAFT_PART_INSTALL/static/
+      cp -r $src/README.md \
+            $src/LICENSE  \
+            $src/custom \
+            $SNAPCRAFT_PART_INSTALL/
+    prime:
+      - -etc
+      - -usr/lib/systemd
+      - -usr/lib/gcc
+      - -usr/lib/sasl2
+      - -usr/lib/x86_64-linux-gnu/krb5
+      - -usr/share/apport
+      - -usr/share/bash-completion
+      - -usr/share/doc
+      - -usr/share/git-core/contrib
+      - -usr/share/man
+      - -usr/share/upstart
+      - -var
+
+  helpers:
+    plugin: dump
+    source: snap/helpers
+    organize:
+      simple_launcher.sh: bin/nxgit
+      app.ini: nxgit/snapApp.ini
+      configuration.sh: bin/gconfig
+    prime:
+      - bin/nxgit
+      - bin/gconfig
+      - nxgit/snapApp.ini

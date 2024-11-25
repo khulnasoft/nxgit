@@ -1,0 +1,15 @@
+#!/sbin/openrc-run
+
+DIR=/var/lib/nxgit
+USER=git
+
+start_stop_daemon_args="--user ${USER} --chdir ${DIR}"
+command="/usr/local/bin/nxgit"
+command_args="web -c /etc/nxgit/app.ini"
+command_background=yes
+pidfile=/var/run/nxgit.pid
+
+depend()
+{
+    need net
+}

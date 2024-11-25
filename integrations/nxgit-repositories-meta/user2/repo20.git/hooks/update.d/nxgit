@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+"/home/tris/Projects/go/src/go.khulnasoft.com/nxgit/nxgit" hook --config='/home/tris/Projects/go/src/go.khulnasoft.com/nxgit/custom/conf/app.ini' update $1 $2 $3

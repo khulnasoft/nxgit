@@ -1,0 +1,2 @@
+#!/usr/bin/env bash
+"$NXGIT_ROOT/nxgit" hook --config="$NXGIT_ROOT/$NXGIT_CONF" pre-receive

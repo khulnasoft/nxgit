@@ -1,0 +1,48 @@
+#!/bin/sh
+#
+# $FreeBSD$
+#
+# PROVIDE: nxgit
+# REQUIRE: NETWORKING SYSLOG
+# KEYWORD: shutdown
+#
+# Add the following lines to /etc/rc.conf to enable nxgit:
+#
+#nxgit_enable="YES"
+
+. /etc/rc.subr
+
+name="nxgit"
+rcvar="nxgit_enable"
+
+load_rc_config $name
+
+: ${nxgit_user:="git"}
+: ${nxgit_enable:="NO"}
+: ${nxgit_directory:="/var/lib/nxgit"}
+
+command="/usr/local/bin/nxgit web -c /etc/nxgit/app.ini"
+procname="$(echo $command |cut -d' ' -f1)"
+
+pidfile="${nxgit_directory}/${name}.pid"
+
+start_cmd="${name}_start"
+stop_cmd="${name}_stop"
+
+nxgit_start() {
+	cd ${nxgit_directory}
+	export USER=${nxgit_user}
+	export HOME=/usr/home/${nxgit_user}
+	export NXGIT_WORK_DIR=${nxgit_directory}
+	/usr/sbin/daemon -f -u ${nxgit_user} -p ${pidfile} $command
+}
+
+nxgit_stop() {
+	if [ ! -f $pidfile ]; then
+		echo "NXGIT PID File not found. Maybe NXGIT is not running?"
+	else
+		kill $(cat $pidfile)
+	fi
+}
+
+run_rc_command "$1"
